@@ -1,11 +1,11 @@
-package db
+package main
 
 import (
 	"context"
 	"fmt"
 	"log"
 
-	"github.com/jcdea/cdn/services/db/ent"
+	"github.com/blahcdn/db/ent"
 	_ "github.com/lib/pq"
 )
 
