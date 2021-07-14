@@ -4,10 +4,12 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/blahcdn/db/ent/user"
 	"github.com/blahcdn/db/ent/zone"
 )
 
@@ -16,6 +18,31 @@ type ZoneCreate struct {
 	config
 	mutation *ZoneMutation
 	hooks    []Hook
+}
+
+// SetDomain sets the "domain" field.
+func (zc *ZoneCreate) SetDomain(s string) *ZoneCreate {
+	zc.mutation.SetDomain(s)
+	return zc
+}
+
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (zc *ZoneCreate) SetOwnerID(id int) *ZoneCreate {
+	zc.mutation.SetOwnerID(id)
+	return zc
+}
+
+// SetNillableOwnerID sets the "owner" edge to the User entity by ID if the given value is not nil.
+func (zc *ZoneCreate) SetNillableOwnerID(id *int) *ZoneCreate {
+	if id != nil {
+		zc = zc.SetOwnerID(*id)
+	}
+	return zc
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (zc *ZoneCreate) SetOwner(u *User) *ZoneCreate {
+	return zc.SetOwnerID(u.ID)
 }
 
 // Mutation returns the ZoneMutation object of the builder.
@@ -69,6 +96,9 @@ func (zc *ZoneCreate) SaveX(ctx context.Context) *Zone {
 
 // check runs all checks and user-defined validators on the builder.
 func (zc *ZoneCreate) check() error {
+	if _, ok := zc.mutation.Domain(); !ok {
+		return &ValidationError{Name: "domain", err: errors.New("ent: missing required field \"domain\"")}
+	}
 	return nil
 }
 
@@ -96,6 +126,34 @@ func (zc *ZoneCreate) createSpec() (*Zone, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := zc.mutation.Domain(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: zone.FieldDomain,
+		})
+		_node.Domain = value
+	}
+	if nodes := zc.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   zone.OwnerTable,
+			Columns: []string{zone.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_zones = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 

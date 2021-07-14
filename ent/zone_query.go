@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/blahcdn/db/ent/predicate"
+	"github.com/blahcdn/db/ent/user"
 	"github.com/blahcdn/db/ent/zone"
 )
 
@@ -24,6 +25,9 @@ type ZoneQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Zone
+	// eager-loading edges.
+	withOwner *UserQuery
+	withFKs   bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (zq *ZoneQuery) Unique(unique bool) *ZoneQuery {
 func (zq *ZoneQuery) Order(o ...OrderFunc) *ZoneQuery {
 	zq.order = append(zq.order, o...)
 	return zq
+}
+
+// QueryOwner chains the current query on the "owner" edge.
+func (zq *ZoneQuery) QueryOwner() *UserQuery {
+	query := &UserQuery{config: zq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := zq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := zq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(zone.Table, zone.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, zone.OwnerTable, zone.OwnerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(zq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Zone entity from the query.
@@ -241,14 +267,39 @@ func (zq *ZoneQuery) Clone() *ZoneQuery {
 		offset:     zq.offset,
 		order:      append([]OrderFunc{}, zq.order...),
 		predicates: append([]predicate.Zone{}, zq.predicates...),
+		withOwner:  zq.withOwner.Clone(),
 		// clone intermediate query.
 		sql:  zq.sql.Clone(),
 		path: zq.path,
 	}
 }
 
+// WithOwner tells the query-builder to eager-load the nodes that are connected to
+// the "owner" edge. The optional arguments are used to configure the query builder of the edge.
+func (zq *ZoneQuery) WithOwner(opts ...func(*UserQuery)) *ZoneQuery {
+	query := &UserQuery{config: zq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	zq.withOwner = query
+	return zq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Domain string `json:"domain,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Zone.Query().
+//		GroupBy(zone.FieldDomain).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (zq *ZoneQuery) GroupBy(field string, fields ...string) *ZoneGroupBy {
 	group := &ZoneGroupBy{config: zq.config}
 	group.fields = append([]string{field}, fields...)
@@ -263,6 +314,17 @@ func (zq *ZoneQuery) GroupBy(field string, fields ...string) *ZoneGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Domain string `json:"domain,omitempty"`
+//	}
+//
+//	client.Zone.Query().
+//		Select(zone.FieldDomain).
+//		Scan(ctx, &v)
+//
 func (zq *ZoneQuery) Select(field string, fields ...string) *ZoneSelect {
 	zq.fields = append([]string{field}, fields...)
 	return &ZoneSelect{ZoneQuery: zq}
@@ -286,9 +348,19 @@ func (zq *ZoneQuery) prepareQuery(ctx context.Context) error {
 
 func (zq *ZoneQuery) sqlAll(ctx context.Context) ([]*Zone, error) {
 	var (
-		nodes = []*Zone{}
-		_spec = zq.querySpec()
+		nodes       = []*Zone{}
+		withFKs     = zq.withFKs
+		_spec       = zq.querySpec()
+		loadedTypes = [1]bool{
+			zq.withOwner != nil,
+		}
 	)
+	if zq.withOwner != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, zone.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Zone{config: zq.config}
 		nodes = append(nodes, node)
@@ -299,6 +371,7 @@ func (zq *ZoneQuery) sqlAll(ctx context.Context) ([]*Zone, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, zq.driver, _spec); err != nil {
@@ -307,6 +380,36 @@ func (zq *ZoneQuery) sqlAll(ctx context.Context) ([]*Zone, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := zq.withOwner; query != nil {
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Zone)
+		for i := range nodes {
+			if nodes[i].user_zones == nil {
+				continue
+			}
+			fk := *nodes[i].user_zones
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(user.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_zones" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Owner = n
+			}
+		}
+	}
+
 	return nodes, nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/blahcdn/db/ent/predicate"
 	"github.com/blahcdn/db/ent/user"
+	"github.com/blahcdn/db/ent/zone"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -26,9 +27,57 @@ func (uu *UserUpdate) Where(ps ...predicate.User) *UserUpdate {
 	return uu
 }
 
+// SetEmail sets the "email" field.
+func (uu *UserUpdate) SetEmail(s string) *UserUpdate {
+	uu.mutation.SetEmail(s)
+	return uu
+}
+
+// SetUsername sets the "username" field.
+func (uu *UserUpdate) SetUsername(s string) *UserUpdate {
+	uu.mutation.SetUsername(s)
+	return uu
+}
+
+// AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
+func (uu *UserUpdate) AddZoneIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddZoneIDs(ids...)
+	return uu
+}
+
+// AddZones adds the "zones" edges to the Zone entity.
+func (uu *UserUpdate) AddZones(z ...*Zone) *UserUpdate {
+	ids := make([]int, len(z))
+	for i := range z {
+		ids[i] = z[i].ID
+	}
+	return uu.AddZoneIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearZones clears all "zones" edges to the Zone entity.
+func (uu *UserUpdate) ClearZones() *UserUpdate {
+	uu.mutation.ClearZones()
+	return uu
+}
+
+// RemoveZoneIDs removes the "zones" edge to Zone entities by IDs.
+func (uu *UserUpdate) RemoveZoneIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveZoneIDs(ids...)
+	return uu
+}
+
+// RemoveZones removes "zones" edges to Zone entities.
+func (uu *UserUpdate) RemoveZones(z ...*Zone) *UserUpdate {
+	ids := make([]int, len(z))
+	for i := range z {
+		ids[i] = z[i].ID
+	}
+	return uu.RemoveZoneIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -38,12 +87,18 @@ func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
 		affected int
 	)
 	if len(uu.hooks) == 0 {
+		if err = uu.check(); err != nil {
+			return 0, err
+		}
 		affected, err = uu.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*UserMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = uu.check(); err != nil {
+				return 0, err
 			}
 			uu.mutation = mutation
 			affected, err = uu.sqlSave(ctx)
@@ -82,6 +137,21 @@ func (uu *UserUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (uu *UserUpdate) check() error {
+	if v, ok := uu.mutation.Email(); ok {
+		if err := user.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
+		}
+	}
+	if v, ok := uu.mutation.Username(); ok {
+		if err := user.UsernameValidator(v); err != nil {
+			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
+		}
+	}
+	return nil
+}
+
 func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -99,6 +169,74 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := uu.mutation.Email(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldEmail,
+		})
+	}
+	if value, ok := uu.mutation.Username(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldUsername,
+		})
+	}
+	if uu.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedZonesIDs(); len(nodes) > 0 && !uu.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ZonesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -119,9 +257,57 @@ type UserUpdateOne struct {
 	mutation *UserMutation
 }
 
+// SetEmail sets the "email" field.
+func (uuo *UserUpdateOne) SetEmail(s string) *UserUpdateOne {
+	uuo.mutation.SetEmail(s)
+	return uuo
+}
+
+// SetUsername sets the "username" field.
+func (uuo *UserUpdateOne) SetUsername(s string) *UserUpdateOne {
+	uuo.mutation.SetUsername(s)
+	return uuo
+}
+
+// AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
+func (uuo *UserUpdateOne) AddZoneIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddZoneIDs(ids...)
+	return uuo
+}
+
+// AddZones adds the "zones" edges to the Zone entity.
+func (uuo *UserUpdateOne) AddZones(z ...*Zone) *UserUpdateOne {
+	ids := make([]int, len(z))
+	for i := range z {
+		ids[i] = z[i].ID
+	}
+	return uuo.AddZoneIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearZones clears all "zones" edges to the Zone entity.
+func (uuo *UserUpdateOne) ClearZones() *UserUpdateOne {
+	uuo.mutation.ClearZones()
+	return uuo
+}
+
+// RemoveZoneIDs removes the "zones" edge to Zone entities by IDs.
+func (uuo *UserUpdateOne) RemoveZoneIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveZoneIDs(ids...)
+	return uuo
+}
+
+// RemoveZones removes "zones" edges to Zone entities.
+func (uuo *UserUpdateOne) RemoveZones(z ...*Zone) *UserUpdateOne {
+	ids := make([]int, len(z))
+	for i := range z {
+		ids[i] = z[i].ID
+	}
+	return uuo.RemoveZoneIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -138,12 +324,18 @@ func (uuo *UserUpdateOne) Save(ctx context.Context) (*User, error) {
 		node *User
 	)
 	if len(uuo.hooks) == 0 {
+		if err = uuo.check(); err != nil {
+			return nil, err
+		}
 		node, err = uuo.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*UserMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = uuo.check(); err != nil {
+				return nil, err
 			}
 			uuo.mutation = mutation
 			node, err = uuo.sqlSave(ctx)
@@ -182,6 +374,21 @@ func (uuo *UserUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (uuo *UserUpdateOne) check() error {
+	if v, ok := uuo.mutation.Email(); ok {
+		if err := user.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
+		}
+	}
+	if v, ok := uuo.mutation.Username(); ok {
+		if err := user.UsernameValidator(v); err != nil {
+			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
+		}
+	}
+	return nil
+}
+
 func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -216,6 +423,74 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := uuo.mutation.Email(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldEmail,
+		})
+	}
+	if value, ok := uuo.mutation.Username(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldUsername,
+		})
+	}
+	if uuo.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedZonesIDs(); len(nodes) > 0 && !uuo.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ZonesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

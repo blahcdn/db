@@ -7,13 +7,28 @@ const (
 	Label = "user"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldEmail holds the string denoting the email field in the database.
+	FieldEmail = "email"
+	// FieldUsername holds the string denoting the username field in the database.
+	FieldUsername = "username"
+	// EdgeZones holds the string denoting the zones edge name in mutations.
+	EdgeZones = "zones"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// ZonesTable is the table the holds the zones relation/edge.
+	ZonesTable = "zones"
+	// ZonesInverseTable is the table name for the Zone entity.
+	// It exists in this package in order to avoid circular dependency with the "zone" package.
+	ZonesInverseTable = "zones"
+	// ZonesColumn is the table column denoting the zones relation/edge.
+	ZonesColumn = "user_zones"
 )
 
 // Columns holds all SQL columns for user fields.
 var Columns = []string{
 	FieldID,
+	FieldEmail,
+	FieldUsername,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -25,3 +40,10 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	EmailValidator func(string) error
+	// UsernameValidator is a validator for the "username" field. It is called by the builders before save.
+	UsernameValidator func(string) error
+)

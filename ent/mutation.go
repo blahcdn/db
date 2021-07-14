@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"sync"
 
-	"entgo.io/ent"
 	"github.com/blahcdn/db/ent/predicate"
+	"github.com/blahcdn/db/ent/user"
+	"github.com/blahcdn/db/ent/zone"
+
+	"entgo.io/ent"
 )
 
 const (
@@ -30,7 +33,12 @@ type UserMutation struct {
 	op            Op
 	typ           string
 	id            *int
+	email         *string
+	username      *string
 	clearedFields map[string]struct{}
+	zones         map[int]struct{}
+	removedzones  map[int]struct{}
+	clearedzones  bool
 	done          bool
 	oldValue      func(context.Context) (*User, error)
 	predicates    []predicate.User
@@ -115,6 +123,131 @@ func (m *UserMutation) ID() (id int, exists bool) {
 	return *m.id, true
 }
 
+// SetEmail sets the "email" field.
+func (m *UserMutation) SetEmail(s string) {
+	m.email = &s
+}
+
+// Email returns the value of the "email" field in the mutation.
+func (m *UserMutation) Email() (r string, exists bool) {
+	v := m.email
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEmail returns the old "email" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldEmail(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldEmail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldEmail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEmail: %w", err)
+	}
+	return oldValue.Email, nil
+}
+
+// ResetEmail resets all changes to the "email" field.
+func (m *UserMutation) ResetEmail() {
+	m.email = nil
+}
+
+// SetUsername sets the "username" field.
+func (m *UserMutation) SetUsername(s string) {
+	m.username = &s
+}
+
+// Username returns the value of the "username" field in the mutation.
+func (m *UserMutation) Username() (r string, exists bool) {
+	v := m.username
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUsername returns the old "username" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldUsername(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldUsername is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldUsername requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUsername: %w", err)
+	}
+	return oldValue.Username, nil
+}
+
+// ResetUsername resets all changes to the "username" field.
+func (m *UserMutation) ResetUsername() {
+	m.username = nil
+}
+
+// AddZoneIDs adds the "zones" edge to the Zone entity by ids.
+func (m *UserMutation) AddZoneIDs(ids ...int) {
+	if m.zones == nil {
+		m.zones = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.zones[ids[i]] = struct{}{}
+	}
+}
+
+// ClearZones clears the "zones" edge to the Zone entity.
+func (m *UserMutation) ClearZones() {
+	m.clearedzones = true
+}
+
+// ZonesCleared reports if the "zones" edge to the Zone entity was cleared.
+func (m *UserMutation) ZonesCleared() bool {
+	return m.clearedzones
+}
+
+// RemoveZoneIDs removes the "zones" edge to the Zone entity by IDs.
+func (m *UserMutation) RemoveZoneIDs(ids ...int) {
+	if m.removedzones == nil {
+		m.removedzones = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.removedzones[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedZones returns the removed IDs of the "zones" edge to the Zone entity.
+func (m *UserMutation) RemovedZonesIDs() (ids []int) {
+	for id := range m.removedzones {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ZonesIDs returns the "zones" edge IDs in the mutation.
+func (m *UserMutation) ZonesIDs() (ids []int) {
+	for id := range m.zones {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetZones resets all changes to the "zones" edge.
+func (m *UserMutation) ResetZones() {
+	m.zones = nil
+	m.clearedzones = false
+	m.removedzones = nil
+}
+
 // Op returns the operation name.
 func (m *UserMutation) Op() Op {
 	return m.op
@@ -129,7 +262,13 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 0)
+	fields := make([]string, 0, 2)
+	if m.email != nil {
+		fields = append(fields, user.FieldEmail)
+	}
+	if m.username != nil {
+		fields = append(fields, user.FieldUsername)
+	}
 	return fields
 }
 
@@ -137,6 +276,12 @@ func (m *UserMutation) Fields() []string {
 // return value indicates that this field was not set, or was not defined in the
 // schema.
 func (m *UserMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case user.FieldEmail:
+		return m.Email()
+	case user.FieldUsername:
+		return m.Username()
+	}
 	return nil, false
 }
 
@@ -144,6 +289,12 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
 func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case user.FieldEmail:
+		return m.OldEmail(ctx)
+	case user.FieldUsername:
+		return m.OldUsername(ctx)
+	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
 
@@ -152,6 +303,20 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *UserMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case user.FieldEmail:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEmail(v)
+		return nil
+	case user.FieldUsername:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUsername(v)
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -173,6 +338,8 @@ func (m *UserMutation) AddedField(name string) (ent.Value, bool) {
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
 func (m *UserMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User numeric field %s", name)
 }
 
@@ -198,54 +365,98 @@ func (m *UserMutation) ClearField(name string) error {
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
 func (m *UserMutation) ResetField(name string) error {
+	switch name {
+	case user.FieldEmail:
+		m.ResetEmail()
+		return nil
+	case user.FieldUsername:
+		m.ResetUsername()
+		return nil
+	}
 	return fmt.Errorf("unknown User field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.zones != nil {
+		edges = append(edges, user.EdgeZones)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeZones:
+		ids := make([]ent.Value, 0, len(m.zones))
+		for id := range m.zones {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedzones != nil {
+		edges = append(edges, user.EdgeZones)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeZones:
+		ids := make([]ent.Value, 0, len(m.removedzones))
+		for id := range m.removedzones {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedzones {
+		edges = append(edges, user.EdgeZones)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgeZones:
+		return m.clearedzones
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgeZones:
+		m.ResetZones()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
 }
 
@@ -255,7 +466,10 @@ type ZoneMutation struct {
 	op            Op
 	typ           string
 	id            *int
+	domain        *string
 	clearedFields map[string]struct{}
+	owner         *int
+	clearedowner  bool
 	done          bool
 	oldValue      func(context.Context) (*Zone, error)
 	predicates    []predicate.Zone
@@ -340,6 +554,81 @@ func (m *ZoneMutation) ID() (id int, exists bool) {
 	return *m.id, true
 }
 
+// SetDomain sets the "domain" field.
+func (m *ZoneMutation) SetDomain(s string) {
+	m.domain = &s
+}
+
+// Domain returns the value of the "domain" field in the mutation.
+func (m *ZoneMutation) Domain() (r string, exists bool) {
+	v := m.domain
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDomain returns the old "domain" field's value of the Zone entity.
+// If the Zone object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ZoneMutation) OldDomain(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldDomain is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldDomain requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDomain: %w", err)
+	}
+	return oldValue.Domain, nil
+}
+
+// ResetDomain resets all changes to the "domain" field.
+func (m *ZoneMutation) ResetDomain() {
+	m.domain = nil
+}
+
+// SetOwnerID sets the "owner" edge to the User entity by id.
+func (m *ZoneMutation) SetOwnerID(id int) {
+	m.owner = &id
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (m *ZoneMutation) ClearOwner() {
+	m.clearedowner = true
+}
+
+// OwnerCleared reports if the "owner" edge to the User entity was cleared.
+func (m *ZoneMutation) OwnerCleared() bool {
+	return m.clearedowner
+}
+
+// OwnerID returns the "owner" edge ID in the mutation.
+func (m *ZoneMutation) OwnerID() (id int, exists bool) {
+	if m.owner != nil {
+		return *m.owner, true
+	}
+	return
+}
+
+// OwnerIDs returns the "owner" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OwnerID instead. It exists only for internal usage by the builders.
+func (m *ZoneMutation) OwnerIDs() (ids []int) {
+	if id := m.owner; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOwner resets all changes to the "owner" edge.
+func (m *ZoneMutation) ResetOwner() {
+	m.owner = nil
+	m.clearedowner = false
+}
+
 // Op returns the operation name.
 func (m *ZoneMutation) Op() Op {
 	return m.op
@@ -354,7 +643,10 @@ func (m *ZoneMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ZoneMutation) Fields() []string {
-	fields := make([]string, 0, 0)
+	fields := make([]string, 0, 1)
+	if m.domain != nil {
+		fields = append(fields, zone.FieldDomain)
+	}
 	return fields
 }
 
@@ -362,6 +654,10 @@ func (m *ZoneMutation) Fields() []string {
 // return value indicates that this field was not set, or was not defined in the
 // schema.
 func (m *ZoneMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case zone.FieldDomain:
+		return m.Domain()
+	}
 	return nil, false
 }
 
@@ -369,6 +665,10 @@ func (m *ZoneMutation) Field(name string) (ent.Value, bool) {
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
 func (m *ZoneMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case zone.FieldDomain:
+		return m.OldDomain(ctx)
+	}
 	return nil, fmt.Errorf("unknown Zone field %s", name)
 }
 
@@ -377,6 +677,13 @@ func (m *ZoneMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *ZoneMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case zone.FieldDomain:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDomain(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Zone field %s", name)
 }
@@ -398,6 +705,8 @@ func (m *ZoneMutation) AddedField(name string) (ent.Value, bool) {
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
 func (m *ZoneMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Zone numeric field %s", name)
 }
 
@@ -423,53 +732,86 @@ func (m *ZoneMutation) ClearField(name string) error {
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
 func (m *ZoneMutation) ResetField(name string) error {
+	switch name {
+	case zone.FieldDomain:
+		m.ResetDomain()
+		return nil
+	}
 	return fmt.Errorf("unknown Zone field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ZoneMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.owner != nil {
+		edges = append(edges, zone.EdgeOwner)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *ZoneMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case zone.EdgeOwner:
+		if id := m.owner; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ZoneMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *ZoneMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ZoneMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedowner {
+		edges = append(edges, zone.EdgeOwner)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *ZoneMutation) EdgeCleared(name string) bool {
+	switch name {
+	case zone.EdgeOwner:
+		return m.clearedowner
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *ZoneMutation) ClearEdge(name string) error {
+	switch name {
+	case zone.EdgeOwner:
+		m.ClearOwner()
+		return nil
+	}
 	return fmt.Errorf("unknown Zone unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *ZoneMutation) ResetEdge(name string) error {
+	switch name {
+	case zone.EdgeOwner:
+		m.ResetOwner()
+		return nil
+	}
 	return fmt.Errorf("unknown Zone edge %s", name)
 }

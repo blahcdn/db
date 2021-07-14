@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/blahcdn/db/ent/predicate"
 	"github.com/blahcdn/db/ent/user"
+	"github.com/blahcdn/db/ent/zone"
 )
 
 // UserQuery is the builder for querying User entities.
@@ -24,6 +26,8 @@ type UserQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.User
+	// eager-loading edges.
+	withZones *ZoneQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (uq *UserQuery) Unique(unique bool) *UserQuery {
 func (uq *UserQuery) Order(o ...OrderFunc) *UserQuery {
 	uq.order = append(uq.order, o...)
 	return uq
+}
+
+// QueryZones chains the current query on the "zones" edge.
+func (uq *UserQuery) QueryZones() *ZoneQuery {
+	query := &ZoneQuery{config: uq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(zone.Table, zone.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ZonesTable, user.ZonesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first User entity from the query.
@@ -241,14 +267,39 @@ func (uq *UserQuery) Clone() *UserQuery {
 		offset:     uq.offset,
 		order:      append([]OrderFunc{}, uq.order...),
 		predicates: append([]predicate.User{}, uq.predicates...),
+		withZones:  uq.withZones.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
 	}
 }
 
+// WithZones tells the query-builder to eager-load the nodes that are connected to
+// the "zones" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithZones(opts ...func(*ZoneQuery)) *UserQuery {
+	query := &ZoneQuery{config: uq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withZones = query
+	return uq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Email string `json:"email,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.User.Query().
+//		GroupBy(user.FieldEmail).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 	group := &UserGroupBy{config: uq.config}
 	group.fields = append([]string{field}, fields...)
@@ -263,6 +314,17 @@ func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Email string `json:"email,omitempty"`
+//	}
+//
+//	client.User.Query().
+//		Select(user.FieldEmail).
+//		Scan(ctx, &v)
+//
 func (uq *UserQuery) Select(field string, fields ...string) *UserSelect {
 	uq.fields = append([]string{field}, fields...)
 	return &UserSelect{UserQuery: uq}
@@ -286,8 +348,11 @@ func (uq *UserQuery) prepareQuery(ctx context.Context) error {
 
 func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 	var (
-		nodes = []*User{}
-		_spec = uq.querySpec()
+		nodes       = []*User{}
+		_spec       = uq.querySpec()
+		loadedTypes = [1]bool{
+			uq.withZones != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &User{config: uq.config}
@@ -299,6 +364,7 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, uq.driver, _spec); err != nil {
@@ -307,6 +373,36 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := uq.withZones; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*User)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Zones = []*Zone{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Zone(func(s *sql.Selector) {
+			s.Where(sql.InValues(user.ZonesColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.user_zones
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "user_zones" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_zones" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Zones = append(node.Edges.Zones, n)
+		}
+	}
+
 	return nodes, nil
 }
 

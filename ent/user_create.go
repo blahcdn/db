@@ -4,11 +4,13 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/blahcdn/db/ent/user"
+	"github.com/blahcdn/db/ent/zone"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -16,6 +18,33 @@ type UserCreate struct {
 	config
 	mutation *UserMutation
 	hooks    []Hook
+}
+
+// SetEmail sets the "email" field.
+func (uc *UserCreate) SetEmail(s string) *UserCreate {
+	uc.mutation.SetEmail(s)
+	return uc
+}
+
+// SetUsername sets the "username" field.
+func (uc *UserCreate) SetUsername(s string) *UserCreate {
+	uc.mutation.SetUsername(s)
+	return uc
+}
+
+// AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
+func (uc *UserCreate) AddZoneIDs(ids ...int) *UserCreate {
+	uc.mutation.AddZoneIDs(ids...)
+	return uc
+}
+
+// AddZones adds the "zones" edges to the Zone entity.
+func (uc *UserCreate) AddZones(z ...*Zone) *UserCreate {
+	ids := make([]int, len(z))
+	for i := range z {
+		ids[i] = z[i].ID
+	}
+	return uc.AddZoneIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -69,6 +98,22 @@ func (uc *UserCreate) SaveX(ctx context.Context) *User {
 
 // check runs all checks and user-defined validators on the builder.
 func (uc *UserCreate) check() error {
+	if _, ok := uc.mutation.Email(); !ok {
+		return &ValidationError{Name: "email", err: errors.New("ent: missing required field \"email\"")}
+	}
+	if v, ok := uc.mutation.Email(); ok {
+		if err := user.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf("ent: validator failed for field \"email\": %w", err)}
+		}
+	}
+	if _, ok := uc.mutation.Username(); !ok {
+		return &ValidationError{Name: "username", err: errors.New("ent: missing required field \"username\"")}
+	}
+	if v, ok := uc.mutation.Username(); ok {
+		if err := user.UsernameValidator(v); err != nil {
+			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -96,6 +141,41 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := uc.mutation.Email(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldEmail,
+		})
+		_node.Email = value
+	}
+	if value, ok := uc.mutation.Username(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldUsername,
+		})
+		_node.Username = value
+	}
+	if nodes := uc.mutation.ZonesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ZonesTable,
+			Columns: []string{user.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: zone.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 

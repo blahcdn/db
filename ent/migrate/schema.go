@@ -11,6 +11,8 @@ var (
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "email", Type: field.TypeString, Unique: true, Size: 50},
+		{Name: "username", Type: field.TypeString, Unique: true, Size: 50},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -22,13 +24,22 @@ var (
 	// ZonesColumns holds the columns for the "zones" table.
 	ZonesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "domain", Type: field.TypeString, Unique: true},
+		{Name: "user_zones", Type: field.TypeInt, Nullable: true},
 	}
 	// ZonesTable holds the schema information for the "zones" table.
 	ZonesTable = &schema.Table{
-		Name:        "zones",
-		Columns:     ZonesColumns,
-		PrimaryKey:  []*schema.Column{ZonesColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{},
+		Name:       "zones",
+		Columns:    ZonesColumns,
+		PrimaryKey: []*schema.Column{ZonesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "zones_users_zones",
+				Columns:    []*schema.Column{ZonesColumns[2]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
@@ -38,4 +49,5 @@ var (
 )
 
 func init() {
+	ZonesTable.ForeignKeys[0].RefTable = UsersTable
 }

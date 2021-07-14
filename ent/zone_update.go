@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/blahcdn/db/ent/predicate"
+	"github.com/blahcdn/db/ent/user"
 	"github.com/blahcdn/db/ent/zone"
 )
 
@@ -26,9 +27,40 @@ func (zu *ZoneUpdate) Where(ps ...predicate.Zone) *ZoneUpdate {
 	return zu
 }
 
+// SetDomain sets the "domain" field.
+func (zu *ZoneUpdate) SetDomain(s string) *ZoneUpdate {
+	zu.mutation.SetDomain(s)
+	return zu
+}
+
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (zu *ZoneUpdate) SetOwnerID(id int) *ZoneUpdate {
+	zu.mutation.SetOwnerID(id)
+	return zu
+}
+
+// SetNillableOwnerID sets the "owner" edge to the User entity by ID if the given value is not nil.
+func (zu *ZoneUpdate) SetNillableOwnerID(id *int) *ZoneUpdate {
+	if id != nil {
+		zu = zu.SetOwnerID(*id)
+	}
+	return zu
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (zu *ZoneUpdate) SetOwner(u *User) *ZoneUpdate {
+	return zu.SetOwnerID(u.ID)
+}
+
 // Mutation returns the ZoneMutation object of the builder.
 func (zu *ZoneUpdate) Mutation() *ZoneMutation {
 	return zu.mutation
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (zu *ZoneUpdate) ClearOwner() *ZoneUpdate {
+	zu.mutation.ClearOwner()
+	return zu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -100,6 +132,48 @@ func (zu *ZoneUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := zu.mutation.Domain(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: zone.FieldDomain,
+		})
+	}
+	if zu.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   zone.OwnerTable,
+			Columns: []string{zone.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := zu.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   zone.OwnerTable,
+			Columns: []string{zone.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, zu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{zone.Label}
@@ -119,9 +193,40 @@ type ZoneUpdateOne struct {
 	mutation *ZoneMutation
 }
 
+// SetDomain sets the "domain" field.
+func (zuo *ZoneUpdateOne) SetDomain(s string) *ZoneUpdateOne {
+	zuo.mutation.SetDomain(s)
+	return zuo
+}
+
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (zuo *ZoneUpdateOne) SetOwnerID(id int) *ZoneUpdateOne {
+	zuo.mutation.SetOwnerID(id)
+	return zuo
+}
+
+// SetNillableOwnerID sets the "owner" edge to the User entity by ID if the given value is not nil.
+func (zuo *ZoneUpdateOne) SetNillableOwnerID(id *int) *ZoneUpdateOne {
+	if id != nil {
+		zuo = zuo.SetOwnerID(*id)
+	}
+	return zuo
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (zuo *ZoneUpdateOne) SetOwner(u *User) *ZoneUpdateOne {
+	return zuo.SetOwnerID(u.ID)
+}
+
 // Mutation returns the ZoneMutation object of the builder.
 func (zuo *ZoneUpdateOne) Mutation() *ZoneMutation {
 	return zuo.mutation
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (zuo *ZoneUpdateOne) ClearOwner() *ZoneUpdateOne {
+	zuo.mutation.ClearOwner()
+	return zuo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -216,6 +321,48 @@ func (zuo *ZoneUpdateOne) sqlSave(ctx context.Context) (_node *Zone, err error) 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := zuo.mutation.Domain(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: zone.FieldDomain,
+		})
+	}
+	if zuo.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   zone.OwnerTable,
+			Columns: []string{zone.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := zuo.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   zone.OwnerTable,
+			Columns: []string{zone.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Zone{config: zuo.config}
 	_spec.Assign = _node.assignValues

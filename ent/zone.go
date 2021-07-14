@@ -7,14 +7,44 @@ import (
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/blahcdn/db/ent/user"
 	"github.com/blahcdn/db/ent/zone"
 )
 
 // Zone is the model entity for the Zone schema.
 type Zone struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Domain holds the value of the "domain" field.
+	Domain string `json:"domain,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ZoneQuery when eager-loading is set.
+	Edges      ZoneEdges `json:"edges"`
+	user_zones *int
+}
+
+// ZoneEdges holds the relations/edges for other nodes in the graph.
+type ZoneEdges struct {
+	// Owner holds the value of the owner edge.
+	Owner *User `json:"owner,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// OwnerOrErr returns the Owner value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ZoneEdges) OwnerOrErr() (*User, error) {
+	if e.loadedTypes[0] {
+		if e.Owner == nil {
+			// The edge owner was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
+		return e.Owner, nil
+	}
+	return nil, &NotLoadedError{edge: "owner"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -23,6 +53,10 @@ func (*Zone) scanValues(columns []string) ([]interface{}, error) {
 	for i := range columns {
 		switch columns[i] {
 		case zone.FieldID:
+			values[i] = new(sql.NullInt64)
+		case zone.FieldDomain:
+			values[i] = new(sql.NullString)
+		case zone.ForeignKeys[0]: // user_zones
 			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Zone", columns[i])
@@ -45,9 +79,27 @@ func (z *Zone) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			z.ID = int(value.Int64)
+		case zone.FieldDomain:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field domain", values[i])
+			} else if value.Valid {
+				z.Domain = value.String
+			}
+		case zone.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_zones", value)
+			} else if value.Valid {
+				z.user_zones = new(int)
+				*z.user_zones = int(value.Int64)
+			}
 		}
 	}
 	return nil
+}
+
+// QueryOwner queries the "owner" edge of the Zone entity.
+func (z *Zone) QueryOwner() *UserQuery {
+	return (&ZoneClient{config: z.config}).QueryOwner(z)
 }
 
 // Update returns a builder for updating this Zone.
@@ -73,6 +125,8 @@ func (z *Zone) String() string {
 	var builder strings.Builder
 	builder.WriteString("Zone(")
 	builder.WriteString(fmt.Sprintf("id=%v", z.ID))
+	builder.WriteString(", domain=")
+	builder.WriteString(z.Domain)
 	builder.WriteByte(')')
 	return builder.String()
 }
