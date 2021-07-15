@@ -16,7 +16,11 @@ type Zone struct {
 
 // creates a zone
 func (d *Database) CreateZone(ctx context.Context, inp *Zone, ownerId int) (*ent.Zone, error) {
-	z, err := d.Client.Zone.Create().SetDomain(inp.Domain).SetOwnerID(ownerId).Save(ctx)
+	z, err := d.Client.Zone.Create().
+		SetDomain(inp.Domain).
+		SetOwnerID(ownerId).
+		Save(ctx)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed creating zone: %w", err)
 	}
