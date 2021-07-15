@@ -34,7 +34,11 @@ func ValidateHash(payload []byte, plaintext string) bool {
 }
 
 func (d *Database) AuthorizeUser(ctx context.Context, username string, plaintext string) (bool, error) {
-	u, err := d.QueryUser(ctx, username)
+	u, err := d.Client.User.
+		Query().
+		Where(user.LowerUsername(strings.ToLower(username))).
+                Only(ctx)
+
 	if err != nil {
 		return false, fmt.Errorf("failed validating password: %w", err)
 	}
