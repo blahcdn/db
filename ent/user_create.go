@@ -32,6 +32,18 @@ func (uc *UserCreate) SetUsername(s string) *UserCreate {
 	return uc
 }
 
+// SetLowerUsername sets the "lower_username" field.
+func (uc *UserCreate) SetLowerUsername(s string) *UserCreate {
+	uc.mutation.SetLowerUsername(s)
+	return uc
+}
+
+// SetPasswordHash sets the "passwordHash" field.
+func (uc *UserCreate) SetPasswordHash(b []byte) *UserCreate {
+	uc.mutation.SetPasswordHash(b)
+	return uc
+}
+
 // AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
 func (uc *UserCreate) AddZoneIDs(ids ...int) *UserCreate {
 	uc.mutation.AddZoneIDs(ids...)
@@ -114,6 +126,17 @@ func (uc *UserCreate) check() error {
 			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
 		}
 	}
+	if _, ok := uc.mutation.LowerUsername(); !ok {
+		return &ValidationError{Name: "lower_username", err: errors.New("ent: missing required field \"lower_username\"")}
+	}
+	if v, ok := uc.mutation.LowerUsername(); ok {
+		if err := user.LowerUsernameValidator(v); err != nil {
+			return &ValidationError{Name: "lower_username", err: fmt.Errorf("ent: validator failed for field \"lower_username\": %w", err)}
+		}
+	}
+	if _, ok := uc.mutation.PasswordHash(); !ok {
+		return &ValidationError{Name: "passwordHash", err: errors.New("ent: missing required field \"passwordHash\"")}
+	}
 	return nil
 }
 
@@ -156,6 +179,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldUsername,
 		})
 		_node.Username = value
+	}
+	if value, ok := uc.mutation.LowerUsername(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldLowerUsername,
+		})
+		_node.LowerUsername = value
+	}
+	if value, ok := uc.mutation.PasswordHash(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeBytes,
+			Value:  value,
+			Column: user.FieldPasswordHash,
+		})
+		_node.PasswordHash = value
 	}
 	if nodes := uc.mutation.ZonesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

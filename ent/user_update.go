@@ -39,6 +39,18 @@ func (uu *UserUpdate) SetUsername(s string) *UserUpdate {
 	return uu
 }
 
+// SetLowerUsername sets the "lower_username" field.
+func (uu *UserUpdate) SetLowerUsername(s string) *UserUpdate {
+	uu.mutation.SetLowerUsername(s)
+	return uu
+}
+
+// SetPasswordHash sets the "passwordHash" field.
+func (uu *UserUpdate) SetPasswordHash(b []byte) *UserUpdate {
+	uu.mutation.SetPasswordHash(b)
+	return uu
+}
+
 // AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
 func (uu *UserUpdate) AddZoneIDs(ids ...int) *UserUpdate {
 	uu.mutation.AddZoneIDs(ids...)
@@ -149,6 +161,11 @@ func (uu *UserUpdate) check() error {
 			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
 		}
 	}
+	if v, ok := uu.mutation.LowerUsername(); ok {
+		if err := user.LowerUsernameValidator(v); err != nil {
+			return &ValidationError{Name: "lower_username", err: fmt.Errorf("ent: validator failed for field \"lower_username\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -182,6 +199,20 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeString,
 			Value:  value,
 			Column: user.FieldUsername,
+		})
+	}
+	if value, ok := uu.mutation.LowerUsername(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldLowerUsername,
+		})
+	}
+	if value, ok := uu.mutation.PasswordHash(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBytes,
+			Value:  value,
+			Column: user.FieldPasswordHash,
 		})
 	}
 	if uu.mutation.ZonesCleared() {
@@ -266,6 +297,18 @@ func (uuo *UserUpdateOne) SetEmail(s string) *UserUpdateOne {
 // SetUsername sets the "username" field.
 func (uuo *UserUpdateOne) SetUsername(s string) *UserUpdateOne {
 	uuo.mutation.SetUsername(s)
+	return uuo
+}
+
+// SetLowerUsername sets the "lower_username" field.
+func (uuo *UserUpdateOne) SetLowerUsername(s string) *UserUpdateOne {
+	uuo.mutation.SetLowerUsername(s)
+	return uuo
+}
+
+// SetPasswordHash sets the "passwordHash" field.
+func (uuo *UserUpdateOne) SetPasswordHash(b []byte) *UserUpdateOne {
+	uuo.mutation.SetPasswordHash(b)
 	return uuo
 }
 
@@ -386,6 +429,11 @@ func (uuo *UserUpdateOne) check() error {
 			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
 		}
 	}
+	if v, ok := uuo.mutation.LowerUsername(); ok {
+		if err := user.LowerUsernameValidator(v); err != nil {
+			return &ValidationError{Name: "lower_username", err: fmt.Errorf("ent: validator failed for field \"lower_username\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -436,6 +484,20 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Type:   field.TypeString,
 			Value:  value,
 			Column: user.FieldUsername,
+		})
+	}
+	if value, ok := uuo.mutation.LowerUsername(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldLowerUsername,
+		})
+	}
+	if value, ok := uuo.mutation.PasswordHash(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBytes,
+			Value:  value,
+			Column: user.FieldPasswordHash,
 		})
 	}
 	if uuo.mutation.ZonesCleared() {

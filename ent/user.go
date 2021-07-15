@@ -19,6 +19,10 @@ type User struct {
 	Email string `json:"email,omitempty"`
 	// Username holds the value of the "username" field.
 	Username string `json:"username,omitempty"`
+	// LowerUsername holds the value of the "lower_username" field.
+	LowerUsername string `json:"lower_username,omitempty"`
+	// PasswordHash holds the value of the "passwordHash" field.
+	PasswordHash []byte `json:"passwordHash,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges UserEdges `json:"edges"`
@@ -47,9 +51,11 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case user.FieldPasswordHash:
+			values[i] = new([]byte)
 		case user.FieldID:
 			values[i] = new(sql.NullInt64)
-		case user.FieldEmail, user.FieldUsername:
+		case user.FieldEmail, user.FieldUsername, user.FieldLowerUsername:
 			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type User", columns[i])
@@ -83,6 +89,18 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field username", values[i])
 			} else if value.Valid {
 				u.Username = value.String
+			}
+		case user.FieldLowerUsername:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field lower_username", values[i])
+			} else if value.Valid {
+				u.LowerUsername = value.String
+			}
+		case user.FieldPasswordHash:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field passwordHash", values[i])
+			} else if value != nil {
+				u.PasswordHash = *value
 			}
 		}
 	}
@@ -121,6 +139,10 @@ func (u *User) String() string {
 	builder.WriteString(u.Email)
 	builder.WriteString(", username=")
 	builder.WriteString(u.Username)
+	builder.WriteString(", lower_username=")
+	builder.WriteString(u.LowerUsername)
+	builder.WriteString(", passwordHash=")
+	builder.WriteString(fmt.Sprintf("%v", u.PasswordHash))
 	builder.WriteByte(')')
 	return builder.String()
 }

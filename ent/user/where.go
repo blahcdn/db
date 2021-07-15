@@ -105,6 +105,20 @@ func Username(v string) predicate.User {
 	})
 }
 
+// LowerUsername applies equality check predicate on the "lower_username" field. It's identical to LowerUsernameEQ.
+func LowerUsername(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLowerUsername), v))
+	})
+}
+
+// PasswordHash applies equality check predicate on the "passwordHash" field. It's identical to PasswordHashEQ.
+func PasswordHash(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldPasswordHash), v))
+	})
+}
+
 // EmailEQ applies the EQ predicate on the "email" field.
 func EmailEQ(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -324,6 +338,193 @@ func UsernameEqualFold(v string) predicate.User {
 func UsernameContainsFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldUsername), v))
+	})
+}
+
+// LowerUsernameEQ applies the EQ predicate on the "lower_username" field.
+func LowerUsernameEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameNEQ applies the NEQ predicate on the "lower_username" field.
+func LowerUsernameNEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameIn applies the In predicate on the "lower_username" field.
+func LowerUsernameIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldLowerUsername), v...))
+	})
+}
+
+// LowerUsernameNotIn applies the NotIn predicate on the "lower_username" field.
+func LowerUsernameNotIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldLowerUsername), v...))
+	})
+}
+
+// LowerUsernameGT applies the GT predicate on the "lower_username" field.
+func LowerUsernameGT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameGTE applies the GTE predicate on the "lower_username" field.
+func LowerUsernameGTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameLT applies the LT predicate on the "lower_username" field.
+func LowerUsernameLT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameLTE applies the LTE predicate on the "lower_username" field.
+func LowerUsernameLTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameContains applies the Contains predicate on the "lower_username" field.
+func LowerUsernameContains(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameHasPrefix applies the HasPrefix predicate on the "lower_username" field.
+func LowerUsernameHasPrefix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameHasSuffix applies the HasSuffix predicate on the "lower_username" field.
+func LowerUsernameHasSuffix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameEqualFold applies the EqualFold predicate on the "lower_username" field.
+func LowerUsernameEqualFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldLowerUsername), v))
+	})
+}
+
+// LowerUsernameContainsFold applies the ContainsFold predicate on the "lower_username" field.
+func LowerUsernameContainsFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldLowerUsername), v))
+	})
+}
+
+// PasswordHashEQ applies the EQ predicate on the "passwordHash" field.
+func PasswordHashEQ(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldPasswordHash), v))
+	})
+}
+
+// PasswordHashNEQ applies the NEQ predicate on the "passwordHash" field.
+func PasswordHashNEQ(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldPasswordHash), v))
+	})
+}
+
+// PasswordHashIn applies the In predicate on the "passwordHash" field.
+func PasswordHashIn(vs ...[]byte) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldPasswordHash), v...))
+	})
+}
+
+// PasswordHashNotIn applies the NotIn predicate on the "passwordHash" field.
+func PasswordHashNotIn(vs ...[]byte) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldPasswordHash), v...))
+	})
+}
+
+// PasswordHashGT applies the GT predicate on the "passwordHash" field.
+func PasswordHashGT(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldPasswordHash), v))
+	})
+}
+
+// PasswordHashGTE applies the GTE predicate on the "passwordHash" field.
+func PasswordHashGTE(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldPasswordHash), v))
+	})
+}
+
+// PasswordHashLT applies the LT predicate on the "passwordHash" field.
+func PasswordHashLT(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldPasswordHash), v))
+	})
+}
+
+// PasswordHashLTE applies the LTE predicate on the "passwordHash" field.
+func PasswordHashLTE(v []byte) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldPasswordHash), v))
 	})
 }
 

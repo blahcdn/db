@@ -13,6 +13,8 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "email", Type: field.TypeString, Unique: true, Size: 50},
 		{Name: "username", Type: field.TypeString, Unique: true, Size: 50},
+		{Name: "lower_username", Type: field.TypeString, Unique: true, Size: 50},
+		{Name: "password_hash", Type: field.TypeBytes, Size: 100},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

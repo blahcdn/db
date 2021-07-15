@@ -11,6 +11,10 @@ const (
 	FieldEmail = "email"
 	// FieldUsername holds the string denoting the username field in the database.
 	FieldUsername = "username"
+	// FieldLowerUsername holds the string denoting the lower_username field in the database.
+	FieldLowerUsername = "lower_username"
+	// FieldPasswordHash holds the string denoting the passwordhash field in the database.
+	FieldPasswordHash = "password_hash"
 	// EdgeZones holds the string denoting the zones edge name in mutations.
 	EdgeZones = "zones"
 	// Table holds the table name of the user in the database.
@@ -29,6 +33,8 @@ var Columns = []string{
 	FieldID,
 	FieldEmail,
 	FieldUsername,
+	FieldLowerUsername,
+	FieldPasswordHash,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -46,4 +52,6 @@ var (
 	EmailValidator func(string) error
 	// UsernameValidator is a validator for the "username" field. It is called by the builders before save.
 	UsernameValidator func(string) error
+	// LowerUsernameValidator is a validator for the "lower_username" field. It is called by the builders before save.
+	LowerUsernameValidator func(string) error
 )

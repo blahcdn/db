@@ -30,18 +30,20 @@ const (
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	email         *string
-	username      *string
-	clearedFields map[string]struct{}
-	zones         map[int]struct{}
-	removedzones  map[int]struct{}
-	clearedzones  bool
-	done          bool
-	oldValue      func(context.Context) (*User, error)
-	predicates    []predicate.User
+	op             Op
+	typ            string
+	id             *int
+	email          *string
+	username       *string
+	lower_username *string
+	passwordHash   *[]byte
+	clearedFields  map[string]struct{}
+	zones          map[int]struct{}
+	removedzones   map[int]struct{}
+	clearedzones   bool
+	done           bool
+	oldValue       func(context.Context) (*User, error)
+	predicates     []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -195,6 +197,78 @@ func (m *UserMutation) ResetUsername() {
 	m.username = nil
 }
 
+// SetLowerUsername sets the "lower_username" field.
+func (m *UserMutation) SetLowerUsername(s string) {
+	m.lower_username = &s
+}
+
+// LowerUsername returns the value of the "lower_username" field in the mutation.
+func (m *UserMutation) LowerUsername() (r string, exists bool) {
+	v := m.lower_username
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLowerUsername returns the old "lower_username" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldLowerUsername(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldLowerUsername is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldLowerUsername requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLowerUsername: %w", err)
+	}
+	return oldValue.LowerUsername, nil
+}
+
+// ResetLowerUsername resets all changes to the "lower_username" field.
+func (m *UserMutation) ResetLowerUsername() {
+	m.lower_username = nil
+}
+
+// SetPasswordHash sets the "passwordHash" field.
+func (m *UserMutation) SetPasswordHash(b []byte) {
+	m.passwordHash = &b
+}
+
+// PasswordHash returns the value of the "passwordHash" field in the mutation.
+func (m *UserMutation) PasswordHash() (r []byte, exists bool) {
+	v := m.passwordHash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPasswordHash returns the old "passwordHash" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldPasswordHash(ctx context.Context) (v []byte, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldPasswordHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldPasswordHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPasswordHash: %w", err)
+	}
+	return oldValue.PasswordHash, nil
+}
+
+// ResetPasswordHash resets all changes to the "passwordHash" field.
+func (m *UserMutation) ResetPasswordHash() {
+	m.passwordHash = nil
+}
+
 // AddZoneIDs adds the "zones" edge to the Zone entity by ids.
 func (m *UserMutation) AddZoneIDs(ids ...int) {
 	if m.zones == nil {
@@ -262,12 +336,18 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 4)
 	if m.email != nil {
 		fields = append(fields, user.FieldEmail)
 	}
 	if m.username != nil {
 		fields = append(fields, user.FieldUsername)
+	}
+	if m.lower_username != nil {
+		fields = append(fields, user.FieldLowerUsername)
+	}
+	if m.passwordHash != nil {
+		fields = append(fields, user.FieldPasswordHash)
 	}
 	return fields
 }
@@ -281,6 +361,10 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Email()
 	case user.FieldUsername:
 		return m.Username()
+	case user.FieldLowerUsername:
+		return m.LowerUsername()
+	case user.FieldPasswordHash:
+		return m.PasswordHash()
 	}
 	return nil, false
 }
@@ -294,6 +378,10 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmail(ctx)
 	case user.FieldUsername:
 		return m.OldUsername(ctx)
+	case user.FieldLowerUsername:
+		return m.OldLowerUsername(ctx)
+	case user.FieldPasswordHash:
+		return m.OldPasswordHash(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -316,6 +404,20 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUsername(v)
+		return nil
+	case user.FieldLowerUsername:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLowerUsername(v)
+		return nil
+	case user.FieldPasswordHash:
+		v, ok := value.([]byte)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPasswordHash(v)
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
@@ -371,6 +473,12 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldUsername:
 		m.ResetUsername()
+		return nil
+	case user.FieldLowerUsername:
+		m.ResetLowerUsername()
+		return nil
+	case user.FieldPasswordHash:
+		m.ResetPasswordHash()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
