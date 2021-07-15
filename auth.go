@@ -6,8 +6,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 
-	"strings"
-
 	"golang.org/x/crypto/argon2"
 )
 
@@ -36,7 +34,7 @@ func ValidateHash(payload []byte, plaintext string) bool {
 }
 
 func (d *Database) AuthorizeUser(ctx context.Context, username string, plaintext string) (bool, error) {
-	u, err := d.QueryUser(ctx, &User{LowerUsername: strings.ToLower(username)})
+	u, err := d.QueryUser(ctx, username)
 	if err != nil {
 		return false, fmt.Errorf("failed validating password: %w", err)
 	}
