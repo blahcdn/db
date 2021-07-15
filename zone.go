@@ -27,10 +27,10 @@ func (d *Database) CreateZone(ctx context.Context, inp *Zone, ownerId int) (*ent
 	return z, nil
 }
 
-func (d *Database) QueryZone(ctx context.Context, where *Zone) (*ent.Zone, error) {
+func (d *Database) QueryZone(ctx context.Context, domain string) (*ent.Zone, error) {
 	u, err := d.Client.Zone.
 		Query().
-		Where(zone.Domain(where.Domain)).
+		Where(zone.Domain(domain)).
 		// `Only` fails if no zone found,
 		// or more than 1 zone returned.
 		Only(ctx)

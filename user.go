@@ -34,11 +34,10 @@ func (d *Database) CreateUser(ctx context.Context, data *User) (*ent.User, error
 	return u, nil
 }
 
-func (d *Database) QueryUser(ctx context.Context, where *User) (*ent.User, error) {
+func (d *Database) QueryUser(ctx context.Context, username string) (*ent.User, error) {
 	u, err := d.Client.User.
 		Query().
-		Where(user.LowerUsername(strings.ToLower(where.Username))).
-		Where(user.Email(where.Email)).
+		Where(user.LowerUsername(strings.ToLower(username))).
 		// `Only` fails if no user found,
 		// or more than 1 user returned.
 		Only(ctx)
