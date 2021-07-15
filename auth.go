@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"fmt"
+	"strings"
 
+	"github.com/blahcdn/db/ent/user"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -37,7 +39,7 @@ func (d *Database) AuthorizeUser(ctx context.Context, username string, plaintext
 	u, err := d.Client.User.
 		Query().
 		Where(user.LowerUsername(strings.ToLower(username))).
-                Only(ctx)
+		Only(ctx)
 
 	if err != nil {
 		return false, fmt.Errorf("failed validating password: %w", err)
