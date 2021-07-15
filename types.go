@@ -7,11 +7,6 @@ type User struct {
 }
 
 type Zone struct {
-	Name  string
-	Owner User
-}
-
-type createZoneInput struct {
-	OwnerId int
-	Domain  string
+	Domain string
+	Owner  User
 }

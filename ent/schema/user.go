@@ -16,6 +16,7 @@ func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("email").Unique().MinLen(3).MaxLen(50),
 		field.String("username").Unique().MinLen(3).MaxLen(50),
+		field.Bytes("passwordHash"),
 	}
 }
 
