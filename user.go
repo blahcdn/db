@@ -19,7 +19,8 @@ type User struct {
 
 // creates an user
 func (d *Database) CreateUser(ctx context.Context, data *User) (*ent.User, error) {
-	u, err := d.Client.User.Create().SetEmail(data.Email).SetUsername(data.Username).SetLowerUsername(strings.ToLower(data.Username)).Save(ctx)
+	println(data.Username)
+	u, err := d.Client.User.Create().SetEmail(data.Email).SetUsername(data.Username).SetLowerUsername(strings.ToLower(data.Username)).SetPasswordHash(data.PasswordHash).Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating user: %w", err)
 	}

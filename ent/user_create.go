@@ -32,6 +32,12 @@ func (uc *UserCreate) SetUsername(s string) *UserCreate {
 	return uc
 }
 
+// SetDisplayname sets the "displayname" field.
+func (uc *UserCreate) SetDisplayname(s string) *UserCreate {
+	uc.mutation.SetDisplayname(s)
+	return uc
+}
+
 // SetLowerUsername sets the "lower_username" field.
 func (uc *UserCreate) SetLowerUsername(s string) *UserCreate {
 	uc.mutation.SetLowerUsername(s)
@@ -126,6 +132,9 @@ func (uc *UserCreate) check() error {
 			return &ValidationError{Name: "username", err: fmt.Errorf("ent: validator failed for field \"username\": %w", err)}
 		}
 	}
+	if _, ok := uc.mutation.Displayname(); !ok {
+		return &ValidationError{Name: "displayname", err: errors.New("ent: missing required field \"displayname\"")}
+	}
 	if _, ok := uc.mutation.LowerUsername(); !ok {
 		return &ValidationError{Name: "lower_username", err: errors.New("ent: missing required field \"lower_username\"")}
 	}
@@ -179,6 +188,14 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldUsername,
 		})
 		_node.Username = value
+	}
+	if value, ok := uc.mutation.Displayname(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldDisplayname,
+		})
+		_node.Displayname = value
 	}
 	if value, ok := uc.mutation.LowerUsername(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

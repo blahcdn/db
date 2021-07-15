@@ -19,6 +19,8 @@ type User struct {
 	Email string `json:"email,omitempty"`
 	// Username holds the value of the "username" field.
 	Username string `json:"username,omitempty"`
+	// Displayname holds the value of the "displayname" field.
+	Displayname string `json:"displayname,omitempty"`
 	// LowerUsername holds the value of the "lower_username" field.
 	LowerUsername string `json:"lower_username,omitempty"`
 	// PasswordHash holds the value of the "passwordHash" field.
@@ -55,7 +57,7 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new([]byte)
 		case user.FieldID:
 			values[i] = new(sql.NullInt64)
-		case user.FieldEmail, user.FieldUsername, user.FieldLowerUsername:
+		case user.FieldEmail, user.FieldUsername, user.FieldDisplayname, user.FieldLowerUsername:
 			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type User", columns[i])
@@ -89,6 +91,12 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field username", values[i])
 			} else if value.Valid {
 				u.Username = value.String
+			}
+		case user.FieldDisplayname:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field displayname", values[i])
+			} else if value.Valid {
+				u.Displayname = value.String
 			}
 		case user.FieldLowerUsername:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -139,6 +147,8 @@ func (u *User) String() string {
 	builder.WriteString(u.Email)
 	builder.WriteString(", username=")
 	builder.WriteString(u.Username)
+	builder.WriteString(", displayname=")
+	builder.WriteString(u.Displayname)
 	builder.WriteString(", lower_username=")
 	builder.WriteString(u.LowerUsername)
 	builder.WriteString(", passwordHash=")

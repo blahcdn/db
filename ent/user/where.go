@@ -105,6 +105,13 @@ func Username(v string) predicate.User {
 	})
 }
 
+// Displayname applies equality check predicate on the "displayname" field. It's identical to DisplaynameEQ.
+func Displayname(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldDisplayname), v))
+	})
+}
+
 // LowerUsername applies equality check predicate on the "lower_username" field. It's identical to LowerUsernameEQ.
 func LowerUsername(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -338,6 +345,117 @@ func UsernameEqualFold(v string) predicate.User {
 func UsernameContainsFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldUsername), v))
+	})
+}
+
+// DisplaynameEQ applies the EQ predicate on the "displayname" field.
+func DisplaynameEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameNEQ applies the NEQ predicate on the "displayname" field.
+func DisplaynameNEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameIn applies the In predicate on the "displayname" field.
+func DisplaynameIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldDisplayname), v...))
+	})
+}
+
+// DisplaynameNotIn applies the NotIn predicate on the "displayname" field.
+func DisplaynameNotIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldDisplayname), v...))
+	})
+}
+
+// DisplaynameGT applies the GT predicate on the "displayname" field.
+func DisplaynameGT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameGTE applies the GTE predicate on the "displayname" field.
+func DisplaynameGTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameLT applies the LT predicate on the "displayname" field.
+func DisplaynameLT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameLTE applies the LTE predicate on the "displayname" field.
+func DisplaynameLTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameContains applies the Contains predicate on the "displayname" field.
+func DisplaynameContains(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameHasPrefix applies the HasPrefix predicate on the "displayname" field.
+func DisplaynameHasPrefix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameHasSuffix applies the HasSuffix predicate on the "displayname" field.
+func DisplaynameHasSuffix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameEqualFold applies the EqualFold predicate on the "displayname" field.
+func DisplaynameEqualFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldDisplayname), v))
+	})
+}
+
+// DisplaynameContainsFold applies the ContainsFold predicate on the "displayname" field.
+func DisplaynameContainsFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldDisplayname), v))
 	})
 }
 

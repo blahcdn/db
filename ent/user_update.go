@@ -39,6 +39,12 @@ func (uu *UserUpdate) SetUsername(s string) *UserUpdate {
 	return uu
 }
 
+// SetDisplayname sets the "displayname" field.
+func (uu *UserUpdate) SetDisplayname(s string) *UserUpdate {
+	uu.mutation.SetDisplayname(s)
+	return uu
+}
+
 // SetLowerUsername sets the "lower_username" field.
 func (uu *UserUpdate) SetLowerUsername(s string) *UserUpdate {
 	uu.mutation.SetLowerUsername(s)
@@ -201,6 +207,13 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldUsername,
 		})
 	}
+	if value, ok := uu.mutation.Displayname(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldDisplayname,
+		})
+	}
 	if value, ok := uu.mutation.LowerUsername(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -297,6 +310,12 @@ func (uuo *UserUpdateOne) SetEmail(s string) *UserUpdateOne {
 // SetUsername sets the "username" field.
 func (uuo *UserUpdateOne) SetUsername(s string) *UserUpdateOne {
 	uuo.mutation.SetUsername(s)
+	return uuo
+}
+
+// SetDisplayname sets the "displayname" field.
+func (uuo *UserUpdateOne) SetDisplayname(s string) *UserUpdateOne {
+	uuo.mutation.SetDisplayname(s)
 	return uuo
 }
 
@@ -484,6 +503,13 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Type:   field.TypeString,
 			Value:  value,
 			Column: user.FieldUsername,
+		})
+	}
+	if value, ok := uuo.mutation.Displayname(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldDisplayname,
 		})
 	}
 	if value, ok := uuo.mutation.LowerUsername(); ok {

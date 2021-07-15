@@ -50,7 +50,7 @@ func init() {
 		}
 	}()
 	// userDescLowerUsername is the schema descriptor for lower_username field.
-	userDescLowerUsername := userFields[2].Descriptor()
+	userDescLowerUsername := userFields[3].Descriptor()
 	// user.LowerUsernameValidator is a validator for the "lower_username" field. It is called by the builders before save.
 	user.LowerUsernameValidator = func() func(string) error {
 		validators := userDescLowerUsername.Validators
